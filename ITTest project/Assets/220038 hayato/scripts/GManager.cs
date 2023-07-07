@@ -37,6 +37,7 @@ public class GManager : MonoBehaviour
     [Header("ここからは日にち系")]
     public DevDateTime devdays;
     public DateTime checkdev = new DateTime(2003, 7, 28);
+
     private void Awake()
     {
         if (instance == null)
@@ -61,9 +62,9 @@ public class GManager : MonoBehaviour
     }
     private void Update()
     {
-        if (instance.reset_time >= 0)
+        if (reset_time >= 0)
         {
-            instance.reset_time -= Time.deltaTime;
+            reset_time -= Time.deltaTime;
         }
     }
     public void YearReset()

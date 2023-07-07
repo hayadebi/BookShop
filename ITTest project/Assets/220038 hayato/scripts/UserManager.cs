@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 public class UserManager : MonoBehaviour
 {
+    public static UserManager instance = null;
     [Header("ユーザー名")]
     public InputField currentUserName;
     [Header("Gmailアドレス")]
@@ -18,12 +19,32 @@ public class UserManager : MonoBehaviour
 
     [Header("ログイン状態確認用")]
     public Text check_loginmode;
+    public GPSManager gpsmanager;
+    public NCMBObject userobj;
 
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+        else
+        {
+            Destroy(this.gameObject);
+        }
+    }
     // mobile backendに接続してログイン ------------------------
     private void Start()
     {
         //数時間以内にログインしたことがあるなら自動ログイン
-        //誰かしらに担当※(教えます)
+        if (NCMBUser.CurrentUser != null) 
+        {
+            NCMBUser currentUser = NCMBUser.CurrentUser;
+            print(currentUser.UserName);
+            check_loginmode.text = "状態：ログイン成功";
+            StartCoroutine(nameof(SaveUserGPS));
+        }
     }
     public void logIn()
     {
@@ -38,6 +59,8 @@ public class UserManager : MonoBehaviour
                 {
                     UnityEngine.Debug.Log("※ログインに成功！");
                     check_loginmode.text = "状態：ログイン成功";
+                    StartCoroutine(nameof(SaveUserGPS));
+
                 }
             });
         }
@@ -84,5 +107,76 @@ public class UserManager : MonoBehaviour
             }
         });
     }
-
+    public IEnumerator SaveUserGPS()
+    {
+        gpsmanager.GetUserGPS();
+        yield return new WaitUntil(() => gpsmanager.getgpstrg);
+        DateGPS();
+    }
+    void DateGPS()
+    {
+        NCMBQuery<NCMBObject> query = null;
+        query = new NCMBQuery<NCMBObject>("UserGPS");
+        NCMBUser currentUser = NCMBUser.CurrentUser;
+        if (currentUser != null)
+        {
+            UnityEngine.Debug.Log("ログイン中のユーザー: " + currentUser.UserName);
+            query.OrderByDescending(currentUser.UserName);
+            //検索件数を設定
+            query.Limit = 4;
+            //データストアでの検索を行う
+            query.FindAsync((List<NCMBObject> objList, NCMBException e) =>
+            {
+                if (e != null)
+                {
+                    NCMBObject obj = new NCMBObject("UserGPS");
+                    obj.Add("username", currentUser.UserName);
+                    obj.Add("login_latitude", gpsmanager.user_latitude);
+                    obj.Add("login_longitude", gpsmanager.user_longitude);
+                    obj.SaveAsync((NCMBException e) => {
+                        if (e != null)
+                        {
+                            UnityEngine.Debug.Log("位置情報をデータストアへ送信失敗しました");
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.Log("位置情報をデータストアへ送信成功しました");
+                        }
+                    });
+                }
+                else
+                {
+                    foreach (NCMBObject obj in objList)
+                    {
+                        userobj = obj;
+                        NCMBObject tmpobj = userobj;
+                        tmpobj["login_latitude"] = gpsmanager.user_latitude;
+                        tmpobj["olgin_longitude"] = gpsmanager.user_longitude;
+                        break;
+                    }
+                }
+            });
+        }
+        else
+        {
+            NCMBObject obj = new NCMBObject("UserGPS");
+            obj.Add("username", currentUser.UserName);
+            obj.Add("login_latitude", gpsmanager.user_latitude);
+            obj.Add("login_longitude", gpsmanager.user_longitude);
+            obj.SaveAsync((NCMBException e) => {
+                if (e != null)
+                {
+                    UnityEngine.Debug.Log("位置情報をデータストアへ送信失敗しました");
+                }
+                else
+                {
+                    UnityEngine.Debug.Log("位置情報をデータストアへ送信成功しました");
+                    NCMBUser user = new NCMBUser();
+                    user.UserName = currentUserName.text;
+                }
+            });
+        }
+        //シーン遷移もする▼
+        //----------------
+    }
 }
