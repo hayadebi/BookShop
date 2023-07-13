@@ -21,7 +21,8 @@ public class UserManager : MonoBehaviour
     public Text check_loginmode;
     public GPSManager gpsmanager;
     public NCMBObject userobj;
-
+    public GameObject mainUI;
+    public GameObject loginUI;
     private void Awake()
     {
         if (instance == null)
@@ -44,6 +45,8 @@ public class UserManager : MonoBehaviour
             print(currentUser.UserName);
             check_loginmode.text = "状態：ログイン成功";
             StartCoroutine(nameof(SaveUserGPS));
+            mainUI.SetActive(true);
+            loginUI.SetActive(false);
         }
     }
     public void logIn()
@@ -60,7 +63,8 @@ public class UserManager : MonoBehaviour
                     UnityEngine.Debug.Log("※ログインに成功！");
                     check_loginmode.text = "状態：ログイン成功";
                     StartCoroutine(nameof(SaveUserGPS));
-
+                    mainUI.SetActive(true);
+                    loginUI.SetActive(false);
                 }
             });
         }
@@ -176,7 +180,5 @@ public class UserManager : MonoBehaviour
                 }
             });
         }
-        //シーン遷移もする▼
-        //----------------
     }
 }
